@@ -14,7 +14,7 @@ from datetime import timedelta
 from django_facebook.utils import compatible_datetime as datetime, \
     get_model_for_attribute, get_user_attribute, get_instance_for_attribute, \
     try_get_profile, update_user_attributes
-from django_facebook.utils import get_user_model, get_profile
+from django_facebook.utils import get_user_model
 from open_facebook.exceptions import OAuthException
 import logging
 import os
@@ -53,7 +53,7 @@ Its recommended to enable FACEBOOK_CELERY_STORE or disable FACEBOOK_STORE_FRIEND
 
     # make sure the context processors are present
     required = ['django_facebook.context_processors.facebook',
-                'django.core.context_processors.request']
+                'django.template.context_processors.request']
     context_processors = settings.TEMPLATE_CONTEXT_PROCESSORS
     for context_processor in required:
         if context_processor not in context_processors:
@@ -291,7 +291,7 @@ class FacebookModel(BaseFacebookModel):
         if user_or_profile_model == user_model:
             return self
         else:
-            return get_profile(self)
+            return self.get_profile()
 
     class Meta:
         abstract = True
@@ -532,7 +532,7 @@ class OpenGraphShare(BaseModel):
 
     def save(self, *args, **kwargs):
         if self.user and not self.facebook_user_id:
-            profile = get_profile(self.user)
+            profile = self.user.get_profile()
             self.facebook_user_id = get_user_attribute(
                 self.user, profile, 'facebook_id')
         return BaseModel.save(self, *args, **kwargs)
@@ -626,7 +626,7 @@ class OpenGraphShare(BaseModel):
         Update the share with the given data
         '''
         result = None
-        profile = get_profile(self.user)
+        profile = self.user.get_profile()
         graph = graph or profile.get_offline_graph()
 
         # update the share dict so a retry will do the right thing
@@ -644,7 +644,7 @@ class OpenGraphShare(BaseModel):
         if not self.share_id:
             raise ValueError('Can only delete shares which have an id')
         # see if the graph is enabled
-        profile = get_profile(self.user)
+        profile = self.user.get_profile()
         graph = graph or profile.get_offline_graph()
         response = None
         if graph:
